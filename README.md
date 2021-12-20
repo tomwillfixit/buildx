@@ -1,18 +1,21 @@
 # Build and Run a Multi-Arch Python App 
 
+![default](images/multi-arch.jpeg)
+
 This [blog post](https://medium.com/devops-dudes/migrating-a-dockerized-gitlab-chat-bot-to-arm-in-an-afternoon-9324dc43480d) covers some of the reasons why you may want to run your Python app or containerized tooling on a different architecture. The primary reason is that with a few changes to the docker build instructions you can run your containers at a fraction of the cost on ARM based instances in AWS.
 
 
 # Let's get started ...
 
-We are going to loosely follow these [instructions](https://docs.docker.com/language/python/build-images) and create a docker image for our Python app which will be able to run on amd64 and arm64 without any code changes.  The steps below are being run on Docker Desktop (v4.3.1) on MacOS.
+We are going to follow some of these [instructions](https://docs.docker.com/language/python/build-images) and create a docker image for our Python app which will be able to run on amd64 and arm64 without any code changes.  The steps below are being run on Docker Desktop (v4.3.1) on MacOS.
 
 
 # Step 1 : Build a basic python app
 
 Checkout the code from this repository (or just copy the Dockerfile and requirements.txt) and run :
-
+```
 docker build -t helloworld .
+```
 
 Let's start the app and verify it works :
 
