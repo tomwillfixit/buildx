@@ -1,18 +1,36 @@
-# Using Docker Buildx to create multi arch python apps
+# Build and Run a Multi-Arch Python App 
 
-Following these instructions : https://docs.docker.com/language/python/build-images/
+This [blog post](https://medium.com/devops-dudes/migrating-a-dockerized-gitlab-chat-bot-to-arm-in-an-afternoon-9324dc43480d) covers some of the reasons why you may want to run your Python app or containerized tooling on a different architecture. The primary reason is that with a few changes to the docker build instructions you can run your containers at a fraction of the cost on ARM based instances in AWS.
 
-We will build a basic python app, build a multi arch image, push to docker registry.
+
+# Let's get started ...
+
+We are going to loosely follow these [instructions](https://docs.docker.com/language/python/build-images) and create a docker image for our Python app which will be able to run on amd64 and arm64 without any code changes.  The steps below are being run on Docker Desktop (v4.3.1) on MacOS.
+
+
+# Step 1 : Build a basic python app
+
+Checkout the code from this repository (or just copy the Dockerfile and requirements.txt) and run :
 
 docker build -t helloworld .
 
 Let's start the app and verify it works :
 
+```
 docker run --publish 5000:5000 helloworld
+curl localhost:5000
+```
 
-Check architecture of the image we just built : docker inspect helloworld |jq -r '.[].Architecture'
+Check architecture of the image we just built : 
 
-Let's tag the image and push to the public registry : 
+This command requires [jq](https://stedolan.github.io/jq/) to be installed. jq is an incredibly useful tool to have in your toolkit.
+```
+docker inspect helloworld |jq -r '.[].Architecture'
+```
+
+# Step 2 : Push image to DockerHub
+
+In this step I'm going to login to my DockerHub account and push the image. If you don't have an account you can can create one [here](https://hub.docker.com/) for free. After creating your account you'll need to replace the "tomwillfixit" string below with your DockerHub username.
 
 ```
 Login to DockerHub : docker login
@@ -22,19 +40,26 @@ docker tag helloworld tomwillfixit/helloworld:python-3.10
 docker push tomwillfixit/helloworld:python-3.10
 ```
 
-See image in DockerHub (Image in email shows architecture)
+We can see in DockerHub that the image we just pushed is amd64. Docker build defaults to the base architecture of the host where it is executed.
 
 ![default](images/dockerhub1.png)
 
-Ok we built an image for the amd64 architecture using Docker Desktop for MacOS.
+# Step 3 : Building with Buildx
 
-Now we want to build an image from the same source code but an image that will run on ARM based hardware such as AWS Graviton2/3.
+Now we want to build an image from the same source code but an image that will run on ARM based hardware such as [AWS Graviton2/3](https://aws.amazon.com/ec2/graviton/).
 
-Introducing Docker Buildx : https://docs.docker.com/buildx/working-with-buildx/
+What is buildx?
 
-It's like docker build on steroids.
+`It's like docker build on steroids.`
 
-Magic command time : docker run --privileged --rm tonistiigi/binfmt --install all
+You can learn more about Docker Buildx [here](https://docs.docker.com/buildx/working-with-buildx).
+
+Let's move on and build our multi-arch image.
+
+The next command looks a bit magical : 
+```
+docker run --privileged --rm tonistiigi/binfmt --install all
+```
 
 What does this command do? It's all explained here : https://docs.docker.com/buildx/working-with-buildx/#build-multi-platform-images
 
@@ -75,7 +100,10 @@ Status: Downloaded newer image for tonistiigi/binfmt:latest
 
 ```
 
-Building : docker buildx build --platform linux/amd64,linux/arm64/v8 --tag tomwillfixit/helloworld:python-3.10 .
+Building : 
+```
+docker buildx build --platform linux/amd64,linux/arm64/v8 --tag tomwillfixit/helloworld:python-3.10 .
+```
 
 At this point we have built an image with the "python-3.10" label that will run on amd64 and arm64.
 
@@ -87,10 +115,25 @@ helloworld                                                                latest
 tomwillfixit/helloworld                                                   python-3.10                                fa8e8485a9d9   24 minutes ago   126MB
 ```
 
-The image is stored in the cache of the builder that we created earlier. The builder was called "demo" and we can view the image in there.
-
+The image is stored in the cache of the builder that we created earlier. The builder was called "demo" and we can view the image using this command.
+```
 docker buildx imagetools inspect tomwillfixit/helloworld:python-3.10
+```
 
-Ok let's build again and automatically push our new multi-arch image : docker buildx build --platform linux/amd64,linux/arm64/v8 --push --tag tomwillfixit/helloworld:python-3.10 .
+Ok let's build again and automatically push our new multi-arch image : 
+```
+docker buildx build --platform linux/amd64,linux/arm64/v8 --push --tag tomwillfixit/helloworld:python-3.10 .
+```
 
+At this point our image has been built for amd64 and arm64. It is automatically pushed to DockerHub.
 ![multi](images/dockerhub2.png)
+
+# Summary
+
+The really nice thing about this approach is that with a few changes to the "docker build" command you can move your apps over to ARM. Whether you are logged into an amd64 or arm64 box you use the same command to start the app : 
+
+```
+docker run --publish 5000:5000 tomwillfixit/helloworld:python-3.10
+```
+
+You don't need to worry about pulling different labels for different architectures. Docker stores the sha value for each architecture in a manifest file in the image registry and when the user pulls the image the correct image is fetched.
