@@ -105,6 +105,9 @@ Status: Downloaded newer image for tonistiigi/binfmt:latest
 
 Building : 
 ```
+We create a new "builder" and enable it. By default this will be a builder of type "docker-container".
+
+docker buildx create --name demo --use
 docker buildx build --platform linux/amd64,linux/arm64/v8 --tag tomwillfixit/helloworld:python-3.10 .
 ```
 
