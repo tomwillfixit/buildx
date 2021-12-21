@@ -12,7 +12,7 @@ We are going to follow some of these [instructions](https://docs.docker.com/lang
 
 # Step 1 : Build a basic python app
 
-Checkout the code from this repository (or just copy the Dockerfile and requirements.txt) and run :
+Checkout the code from this repository (or just copy the Dockerfile, app.py and requirements.txt) and run :
 ```
 docker build -t helloworld .
 ```
